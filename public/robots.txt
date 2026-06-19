@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /gestion-7k2m9p
+Disallow: /api/
