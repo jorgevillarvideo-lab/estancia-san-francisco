@@ -29,6 +29,8 @@ export default function Dashboard() {
   const [actualizando, setActualizando] = useState(false);
   const [error, setError] = useState(null);
   const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
+  const [rangoExport, setRangoExport] = useState('hoy'); // hoy / ayer / 7dias / 30dias
+  const [exportando, setExportando] = useState(false);
 
   const cargarPedidos = useCallback(async () => {
     setActualizando(true);
@@ -89,6 +91,69 @@ export default function Dashboard() {
     if (!confirm('¿Cerrar sesión?')) return;
     await fetch('/api/admin/logout', { method: 'POST' });
     router.push('/gestion-7k2m9p/login');
+  }
+
+  function calcularRangoFechas(rango) {
+    const hoy = new Date();
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    const hace7 = new Date();
+    hace7.setDate(hace7.getDate() - 6);
+    const hace30 = new Date();
+    hace30.setDate(hace30.getDate() - 29);
+
+    function fmt(d) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    switch (rango) {
+      case 'ayer':
+        return { desde: fmt(ayer), hasta: fmt(ayer), label: 'ayer' };
+      case '7dias':
+        return { desde: fmt(hace7), hasta: fmt(hoy), label: 'últimos 7 días' };
+      case '30dias':
+        return { desde: fmt(hace30), hasta: fmt(hoy), label: 'últimos 30 días' };
+      case 'hoy':
+      default:
+        return { desde: fmt(hoy), hasta: fmt(hoy), label: 'hoy' };
+    }
+  }
+
+  async function exportarExcel() {
+    setExportando(true);
+    try {
+      const { desde, hasta } = calcularRangoFechas(rangoExport);
+      const params = new URLSearchParams({ desde, hasta });
+      const res = await fetch('/api/admin/export?' + params.toString());
+
+      if (res.status === 401) {
+        router.push('/gestion-7k2m9p/login');
+        return;
+      }
+      if (!res.ok) {
+        alert('Error generando Excel');
+        return;
+      }
+      // Descargar el blob
+      const blob = await res.blob();
+      const urlObj = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = urlObj;
+      const cd = res.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="([^"]+)"/);
+      a.download = match ? match[1] : 'estancia-sf.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(urlObj);
+    } catch (err) {
+      alert('No se pudo descargar el Excel');
+    } finally {
+      setExportando(false);
+    }
   }
 
   function siguienteEstado(estado) {
@@ -155,6 +220,24 @@ export default function Dashboard() {
               {actualizando ? '↻ Actualizando...' : `Última: ${formatHora(ultimaActualizacion.toISOString())}`}
             </span>
           )}
+          <select
+            value={rangoExport}
+            onChange={(e) => setRangoExport(e.target.value)}
+            style={styles.selectExport}
+            disabled={exportando}
+          >
+            <option value="hoy">Hoy</option>
+            <option value="ayer">Ayer</option>
+            <option value="7dias">7 días</option>
+            <option value="30dias">30 días</option>
+          </select>
+          <button
+            onClick={exportarExcel}
+            style={{ ...styles.btnExport, opacity: exportando ? 0.6 : 1 }}
+            disabled={exportando}
+          >
+            {exportando ? 'Generando...' : '↓ Excel'}
+          </button>
           <button onClick={cerrarSesion} style={styles.btnSalir}>
             Salir
           </button>
@@ -358,6 +441,29 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: '0.15em',
     fontWeight: 600,
+    cursor: 'pointer',
+  },
+  selectExport: {
+    background: '#0F0F0F',
+    color: '#F5F1E8',
+    border: '1px solid #F2C53D',
+    padding: '0.4rem 0.6rem',
+    fontFamily: 'IBM Plex Mono, monospace',
+    fontSize: '0.7rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+    cursor: 'pointer',
+  },
+  btnExport: {
+    background: '#F2C53D',
+    color: '#0F0F0F',
+    border: '1px solid #F2C53D',
+    padding: '0.4rem 0.85rem',
+    fontFamily: 'IBM Plex Mono, monospace',
+    fontSize: '0.7rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.15em',
+    fontWeight: 700,
     cursor: 'pointer',
   },
   contadores: {
