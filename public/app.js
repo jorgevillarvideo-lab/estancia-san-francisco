@@ -279,8 +279,10 @@ function iniciarWizard() {
     acompanamiento: new Set(),
     bebida: new Set(),
   };
-  estado.nombre = leerPref('cliente_nombre') || '';
-  estado.telefono = leerPref('cliente_telefono') || '';
+  // Prioridad: cliente registrado (Etapa 2) > preferencias viejas (Etapa 1) > vacío
+  const cliente = leerCliente();
+  estado.nombre = cliente?.nombre || leerPref('cliente_nombre') || '';
+  estado.telefono = cliente?.telefono || leerPref('cliente_telefono') || '';
   estado.horaRetiro = '';
   estado.notas = '';
   renderPaso();
@@ -392,6 +394,42 @@ function renderCierre() {
   const minimo = new Date(ahora.getTime() + CONFIG.tiempoPreparacionMin * 60_000);
   const minHHMM = `${String(minimo.getHours()).padStart(2,'0')}:${String(minimo.getMinutes()).padStart(2,'0')}`;
 
+  const clienteActual = leerCliente();
+  const esClienteRegistrado = !!clienteActual?.nombre;
+
+  const bloqueDatos = esClienteRegistrado
+    ? `
+      <div class="datos-cliente-conf">
+        <div class="datos-cliente-encabezado">
+          <span class="datos-cliente-check">✓</span>
+          <span class="kicker">Te conocemos</span>
+        </div>
+        <div class="datos-cliente-fila">
+          <span class="datos-cliente-etq">Retira</span>
+          <span class="datos-cliente-val">${escapar(clienteActual.nombre)}</span>
+        </div>
+        <div class="datos-cliente-fila">
+          <span class="datos-cliente-etq">WhatsApp</span>
+          <span class="datos-cliente-val">+${escapar(clienteActual.telefono)}</span>
+        </div>
+      </div>
+      <input type="hidden" id="campo-nombre" value="${escapar(estado.nombre)}">
+      <input type="hidden" id="campo-telefono" value="${escapar(estado.telefono)}">
+    `
+    : `
+      <label class="campo">
+        <span class="campo-label">Tu nombre</span>
+        <input type="text" class="campo-input" id="campo-nombre"
+               value="${escapar(estado.nombre)}" placeholder="Cómo te llamamos">
+      </label>
+
+      <label class="campo">
+        <span class="campo-label">Teléfono (WhatsApp)</span>
+        <input type="tel" class="campo-input" id="campo-telefono"
+               value="${escapar(estado.telefono)}" placeholder="+54 9 11 ...">
+      </label>
+    `;
+
   $('#paso-contenido').innerHTML = `
     <div class="paso-header">
       <span class="kicker">Tu pedido</span>
@@ -407,17 +445,7 @@ function renderCierre() {
       <span class="campo-hint" id="hint-hora">Necesitamos al menos ${CONFIG.tiempoPreparacionMin} minutos para prepararlo. Antes de las ${minHHMM} no podemos.</span>
     </label>
 
-    <label class="campo">
-      <span class="campo-label">Tu nombre</span>
-      <input type="text" class="campo-input" id="campo-nombre"
-             value="${escapar(estado.nombre)}" placeholder="Cómo te llamamos">
-    </label>
-
-    <label class="campo">
-      <span class="campo-label">Teléfono (WhatsApp)</span>
-      <input type="tel" class="campo-input" id="campo-telefono"
-             value="${escapar(estado.telefono)}" placeholder="+54 9 11 ...">
-    </label>
+    ${bloqueDatos}
 
     <label class="campo">
       <span class="campo-label">Notas (opcional)</span>
@@ -438,14 +466,19 @@ function renderCierre() {
     actualizarHintHora();
     renderNav(true);
   });
-  $('#campo-nombre').addEventListener('input', (e) => {
-    estado.nombre = e.target.value;
-    renderNav(true);
-  });
-  $('#campo-telefono').addEventListener('input', (e) => {
-    estado.telefono = e.target.value;
-    renderNav(true);
-  });
+
+  // Solo enganchamos listeners si los campos son editables (cliente no registrado)
+  if (!esClienteRegistrado) {
+    $('#campo-nombre').addEventListener('input', (e) => {
+      estado.nombre = e.target.value;
+      renderNav(true);
+    });
+    $('#campo-telefono').addEventListener('input', (e) => {
+      estado.telefono = e.target.value;
+      renderNav(true);
+    });
+  }
+
   $('#campo-notas').addEventListener('input', (e) => {
     estado.notas = e.target.value;
   });
