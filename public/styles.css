@@ -1487,3 +1487,64 @@ h1, h2, h3, h4 {
   padding: 0.2rem 0.6rem;
   margin: 0 0.2rem;
 }
+
+/* ============================================================
+   BLOQUE "TE CONOCEMOS" — datos del cliente registrado en wizard final
+   ============================================================ */
+.datos-cliente-conf {
+  background: var(--crema2, #f5f1e8);
+  border-left: 4px solid var(--verde, #3A7A33);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+}
+
+.datos-cliente-encabezado {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.datos-cliente-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  background: var(--verde, #3A7A33);
+  color: var(--blanco, #fff);
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.datos-cliente-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed var(--linea, #d8d4c8);
+  gap: 1rem;
+}
+
+.datos-cliente-fila:last-child {
+  border-bottom: none;
+}
+
+.datos-cliente-etq {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--gris-tinta, #5c5c5c);
+  font-weight: 600;
+}
+
+.datos-cliente-val {
+  font-family: "Inter", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--negro, #0f0f0f);
+  text-align: right;
+}
